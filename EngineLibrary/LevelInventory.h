@@ -1,13 +1,6 @@
 #pragma once
-#include "Price.h"
-#include "Quantity.h"
-#include <vector>
+#include "Level.h"
 namespace Model {
-	struct Level {
-		Price price;
-		Quantity quantity;
-	};
-	using Levels = std::vector<Level>;
 	class LevelInventory {
 	public:
 		LevelInventory(const Levels& bidLevels, const Levels& askLevels)

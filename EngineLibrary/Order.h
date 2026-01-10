@@ -4,7 +4,9 @@
 #include "Price.h"
 #include "Quantity.h"
 #include "Side.h"
+#include <deque>
 #include <expected>
+#include <memory>
 
 namespace OrderingSystem {
 	enum class FillError {
@@ -15,7 +17,11 @@ namespace OrderingSystem {
 	public:
 		bool isFilled() const;
 		std::expected<void, FillError> fill(Model::Quantity qty);
-
+		Model::Side getSide() const { return side; }
+		Model::OrderId getOrderId() const { return orderId; }
+		Model::Price getPrice() const { return price; }
+		Model::Quantity getRemainingQuantity() const { return remainingQuantity; }
+		Model::OrderType getOrderType() const { return orderType; }
 		class Builder {
 		public:
 			Builder() = default;
@@ -54,4 +60,6 @@ namespace OrderingSystem {
 		Model::Price price;
 		Model::OrderId orderId;
 	};
+	using OrderPtr = std::shared_ptr<Order>;
+	using Orders = std::deque<OrderPtr>;
 }
