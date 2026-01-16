@@ -9,13 +9,15 @@
 #include <map>
 namespace OrderingSystem {
 	enum class OrderBookError {
-		ORDER_ID_NOT_FOUND
+		ORDER_ID_NOT_FOUND,
+		PRICE_NOT_FOUND
 	};
 	class Orderbook
 	{
 	private:
 		std::map<Model::Price, Orders, std::greater<Model::Price>> bids;
 		std::map<Model::Price, Orders, std::less<Model::Price>> asks;
+		std::map<Model::OrderId, OrderPtr> orders;
 		bool canMatch(Model::Side side, Model::Price price) const;
 		Model::Trades matchOrder(const Order& incomingOrder);
 	public:
