@@ -31,7 +31,9 @@ namespace OrderingSystem {
 	Trades Orderbook::matchOrder(const Order& incomingOrder) {
 		// Placeholder implementation
 		Trades trades;
-		trades.reserve(asks.size() + bids.size()); //pessimistically reserve space for all orders
+		//pessimistically reserve space for all orders; 
+		// currently allocating like this is a bottle neck
+		trades.reserve(asks.size() + bids.size());
 		while (!bids.empty() && !asks.empty()) {
 			auto bid_it = bids.begin();
 			auto ask_it = asks.begin();
