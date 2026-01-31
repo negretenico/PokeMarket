@@ -4,8 +4,8 @@
 #include "Price.h"
 #include "Quantity.h"
 #include "Side.h"
+#include <deque>
 #include <expected>
-#include <list>
 #include <memory>
 
 namespace OrderingSystem {
@@ -61,5 +61,5 @@ namespace OrderingSystem {
 		Model::OrderId orderId;
 	};
 	using OrderPtr = std::shared_ptr<Order>;
-	using Orders = std::list<OrderPtr>;
+	using Orders = std::deque<OrderPtr>;
 }

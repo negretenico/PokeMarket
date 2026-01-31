@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_CONFIGURATION: Release
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Find solution file
+      id: find_solution
+      shell: pwsh
+      run: |
+        $sln = Get-ChildItem -Path $Env:GITHUB_WORKSPACE -Filter *.sln -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $sln) {
+          Write-Error "No .sln file found in the repository root or subfolders."
+          exit 1
+        }
+        echo "sln_path=$($sln.FullName)" >> $Env:GITHUB_OUTPUT
+
+    - name: Restore NuGet packages
+      working-directory: ${{ github.workspace }}
+      run: nuget restore "${{ steps.find_solution.outputs.sln_path }}"
+
+    - name: Build solution with MSBuild
+      working-directory: ${{ github.workspace }}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} "${{ steps.find_solution.outputs.sln_path }}"
+
+    - name: Run C++ test executables
+      shell: pwsh
+      run: |
+        Write-Host "Searching for test executables (filename contains 'Test')..."
+        $tests = Get-ChildItem -Path $Env:GITHUB_WORKSPACE -Filter "*Test*.exe" -Recurse -ErrorAction SilentlyContinue
+        if (-not $tests) {
+          Write-Host "No test executables found. If your tests are named differently, adjust the search pattern."
+          exit 0
+        }
+        foreach ($t in $tests) {
+          Write-Host "Running tests in $($t.FullName)"
+          & $t.FullName
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Test executable $($t.FullName) failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+        }

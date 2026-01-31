@@ -7,6 +7,8 @@
 #include <expected>
 #include <functional>
 #include <map>
+#include <unordered_map>
+
 namespace OrderingSystem {
 	enum class OrderBookError {
 		ORDER_ID_NOT_FOUND,
@@ -17,11 +19,14 @@ namespace OrderingSystem {
 	private:
 		std::map<Model::Price, Orders, std::greater<Model::Price>> bids;
 		std::map<Model::Price, Orders, std::less<Model::Price>> asks;
-		std::map<Model::OrderId, OrderPtr> orders;
+		Model::Trades possibleTrades;
+		std::unordered_map<Model::OrderId, OrderPtr> orders;
 		bool canMatch(Model::Side side, Model::Price price) const;
 		Model::Trades matchOrder(const Order& incomingOrder);
 	public:
-		Orderbook() = default;
+		Orderbook() {
+			possibleTrades.reserve(1'000); // preallocate space for trades to avoid dynamic allocations
+		};
 		~Orderbook() = default;
 		Orderbook(const Orderbook&) = delete;
 		void operator=(const Orderbook&) = delete;

@@ -7,10 +7,10 @@
 #include "Side.h"
 #include "Trade.h"
 #include <algorithm>
+#include <deque>
 #include <expected>
 #include <list>
 #include <memory>
-#include <vector>
 using namespace Model;
 namespace OrderingSystem {
 	bool Orderbook::canMatch(Side side, Price price) const {
@@ -29,11 +29,7 @@ namespace OrderingSystem {
 		return price <= buyingPrice;
 	}
 	Trades Orderbook::matchOrder(const Order& incomingOrder) {
-		// Placeholder implementation
-		Trades trades;
-		//pessimistically reserve space for all orders; 
-		// currently allocating like this is a bottle neck
-		trades.reserve(asks.size() + bids.size());
+		possibleTrades.clear();
 		while (!bids.empty() && !asks.empty()) {
 			auto bid_it = bids.begin();
 			auto ask_it = asks.begin();
@@ -76,8 +72,8 @@ namespace OrderingSystem {
 				}
 
 				//add our orders to the trade list
-				trades.push_back(Trade{ buyId, buyingPrice,tradeQty });
-				trades.push_back(Trade{ sellId, sellingPrice ,tradeQty });
+				possibleTrades.push_back(Trade{ buyId, buyingPrice,tradeQty });
+				possibleTrades.push_back(Trade{ sellId, sellingPrice ,tradeQty });
 			}
 			// if either beconmes empty remove that rpice from the order book 
 			if (bid_it->second.empty()) {
@@ -87,27 +83,36 @@ namespace OrderingSystem {
 				asks.erase(ask_it);
 			}
 		}
-		return trades;
+		return possibleTrades;
 	}
 
 	Trades Orderbook::addOrder(const Order& order) {
 		if (!canMatch(order.getSide(), order.getPrice())) {
 			// No matches possible, add to order book directly
 			auto orderPtr = std::make_shared<Order>(order);
-			orders[order.getOrderId()] = orderPtr;
+			//orders[order.getOrderId()] = orderPtr;
+			auto [it, inserted] = orders.try_emplace(order.getOrderId(), orderPtr);
+			auto& storedPtr = it->second;
+
 			if (order.getSide() == Side::Buy) {
-				bids[order.getPrice()].push_back(orderPtr);
+				bids[order.getPrice()].push_back(storedPtr);
 				return {};
 			}
-			asks[order.getPrice()].push_back(orderPtr);
+			asks[order.getPrice()].push_back(storedPtr);
 			return { }; // empty trades
 		}
 		auto orderPtr = std::make_shared<Order>(order);
-		orders[order.getOrderId()] = orderPtr;
+		//orders[order.getOrderId()] = orderPtr;
+		auto [it, inserted] = orders.try_emplace(order.getOrderId(), orderPtr);
+		auto& storedPtr = it->second; // use existing pointer if insertion did not happen
+
+		// If you prefer to overwrite an existing entry instead of keeping it:
+		// if (!inserted) it->second = orderPtr; // replaces existing pointer with new one
+
 		if (order.getSide() == Side::Buy) {
-			bids[order.getPrice()].push_back(orderPtr);
+			bids[order.getPrice()].push_back(storedPtr);
 		}
-		asks[order.getPrice()].push_back(orderPtr);
+		asks[order.getPrice()].push_back(storedPtr);
 		Trades trades = matchOrder(order);
 		if (order.getRemainingQuantity() == Quantity{ 0 }) {
 			return trades; // order fully filled during matching
